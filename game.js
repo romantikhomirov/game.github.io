@@ -106,7 +106,7 @@
   document.querySelector('#playAgain').addEventListener('click',()=>{if(isHost){reset();publishState(true);publishTerrain();}});
   function setupLobby(){
     const startMenu=document.querySelector('#startMenu'),lobby=document.querySelector('#lobby'),status=document.querySelector('#lobbyStatus'),clientId=sessionStorage.getItem('worms-client')||crypto.randomUUID();
-    let players={},match=null,joining=false;
+    let players={},match=null,joining=false,opponentWasHere=false,departureNotified=false;
     sessionStorage.setItem('worms-client',clientId);
     function startSolo(){
       botMode=true;selectedPlayer='1';isHost=true;gameStarted=true;startMenu.style.display='none';reset();
@@ -135,6 +135,9 @@
       });
     }
     function updateLobby(){
+      const opponent=selectedPlayer==='1'?'2':'1';
+      if(players[opponent])opponentWasHere=true;
+      if(gameStarted&&opponentWasHere&&!players[opponent]&&!departureNotified){departureNotified=true;const notice=document.querySelector('#connectionNotice');notice.textContent='Соперник отключился от матча';notice.style.display='block';}
       if(gameStarted)return;
       if(!selectedPlayer){status.textContent='Игра уже занята. Подождите, пока освободится место.';return;}
       if(!hasBothPlayers()){status.textContent=`Вы ${selectedPlayer==='1'?'в красной':'в синей'} команде — ждём второго игрока…`;return;}
