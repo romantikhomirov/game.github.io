@@ -119,6 +119,7 @@
       bindMultiplayer();
       join(1);
     }
+    addEventListener('pagehide',()=>{if(lobbyRef&&selectedPlayer)lobbyRef.child(`players/${selectedPlayer}`).remove();},{once:true});
     function hasBothPlayers(){return players['1']&&players['2'];}
     function matchIsCurrent(){return match?.started&&hasBothPlayers()&&match.hostClientId===players['1'].clientId&&match.guestClientId===players['2'].clientId;}
     function beginIfReady(){
