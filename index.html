@@ -16,7 +16,6 @@
       <header>
         <div class="logo">WORM<span>S</span><small>БАЗУКА</small></div>
         <div id="turnInfo" class="turn-info"></div>
-        <button id="restart" title="Начать заново">↻ Новая игра</button>
       </header>
       <section class="stage-wrap">
         <canvas id="game" width="1280" height="720"></canvas>
@@ -35,6 +34,13 @@
             <div class="lobby-title">БЫСТРЫЙ МУЛЬТИПЛЕЕР</div>
             <p class="lobby-lead">Комната не нужна: первый игрок — красная команда, второй — синяя.</p>
             <p id="lobbyStatus">Подключаем к игре…</p>
+          </div>
+        </div>
+        <div id="gameOverMenu" class="lobby game-over-menu">
+          <div class="lobby-card">
+            <div id="gameOverTitle" class="lobby-title">ПОБЕДА!</div>
+            <button id="playAgain">Ещё раз</button>
+            <p id="gameOverNote"></p>
           </div>
         </div>
         <div id="hint" class="hint">A / D — идти · Пробел — прыгать · 1–5 — оружие · Удерживай ЛКМ — сила базуки</div>
