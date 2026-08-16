@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Worms: Базука</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <header>
+        <div class="logo">WORM<span>S</span><small>БАЗУКА</small></div>
+        <div id="turnInfo" class="turn-info"></div>
+        <button id="restart" title="Начать заново">↻ Новая игра</button>
+      </header>
+      <section class="stage-wrap">
+        <canvas id="game" width="1280" height="720"></canvas>
+        <div id="lobby" class="lobby">
+          <div class="lobby-card">
+            <div class="lobby-title">КОМНАТА МУЛЬТИПЛЕЕРА</div>
+            <p id="roomText">Подключение к комнате…</p>
+            <div class="slots">
+              <button class="slot" data-player="1">Игрок 1<br><small>Красная команда</small></button>
+              <button class="slot" data-player="2">Игрок 2<br><small>Синяя команда</small></button>
+            </div>
+            <button id="ready" disabled>Выбери игрока</button>
+            <p id="lobbyStatus">Ожидание второго игрока</p>
+          </div>
+        </div>
+        <div id="hint" class="hint">A / D — идти · W — прыгать · 1–5 — оружие · Удерживай ЛКМ — сила базуки</div>
+      </section>
+      <footer><span>По очереди управляйте бойцами и выбейте вражескую команду.</span><span>Базука · 30 сек. на ход</span></footer>
+    </main>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
