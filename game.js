@@ -102,6 +102,8 @@
   function setupLobby(){
     const startMenu=document.querySelector('#startMenu'),lobby=document.querySelector('#lobby'),status=document.querySelector('#lobbyStatus'),clientId=sessionStorage.getItem('worms-client')||crypto.randomUUID();
     let players={},match=null,joining=false;
+    // Old shared-room links must always open the clean start screen.
+    if(location.search||location.hash)history.replaceState(null,'',location.pathname);
     sessionStorage.setItem('worms-client',clientId);
     function startSolo(){
       botMode=true;selectedPlayer='1';isHost=true;gameStarted=true;startMenu.style.display='none';reset();
