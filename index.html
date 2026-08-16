@@ -10,14 +10,14 @@
       if (performance.getEntriesByType('navigation')[0]?.type === 'reload') sessionStorage.removeItem('worms-client');
       addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
     </script>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=1.0.15" />
   </head>
   <body>
     <main class="game-shell">
       <header>
         <div class="logo">WORM<span>S</span><small>БАЗУКА</small></div>
         <div id="turnInfo" class="turn-info"></div>
-        <div class="version" aria-label="Версия игры">v1.0.14</div>
+        <div class="version" aria-label="Версия игры">v1.0.15</div>
       </header>
       <section class="stage-wrap">
         <canvas id="game" width="1280" height="720"></canvas>
@@ -52,6 +52,6 @@
     </main>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-    <script src="game.js"></script>
+    <script src="game.js?v=1.0.15"></script>
   </body>
 </html>
