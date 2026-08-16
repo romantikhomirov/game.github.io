@@ -8,7 +8,7 @@
   terrain.width = canvas.width; terrain.height = canvas.height;
   const W = canvas.width, H = canvas.height, R = 17, WATER = 625;
   let terrainPixels;
-  let worms, active, projectile, gameOver, turnStart, last, mouse = { x: 900, y: 280 }, charging = false, chargeStart = 0, explosions = [], graves = [], particles = [], weapon = 'bazooka', weaponMenu = false, menuPos = {x:0,y:0}, airstrike = null, airBombs = [], airstrikeDone=false, goatDrop=null, mineDrop=null, mines=[], levelSeed = 0, goats = [], birds=[];
+  let worms, active, projectile, gameOver, turnStart, last, mouse = { x: 900, y: 280 }, charging = false, chargeStart = 0, explosions = [], graves = [], particles = [], weapon = 'bazooka', weaponMenu = false, menuPos = {x:0,y:0}, airstrike = null, airBombs = [], airstrikeDone=false, goatDrop=null, mineDrop=null, mines=[], levelSeed = 0, goats = [], birds=[], botMode=false, botThink=0;
   const keys = {};
   const teams = [{ name: 'Красные', color: '#ef5a4b', dark: '#b83c3a' }, { name: 'Синие', color: '#4e93e5', dark: '#2769b5' }];
   const names=['Петя','Вася','Федя','Гриша','Боря','Кузя','Семён','Толик','Жора','Митя'];
@@ -26,7 +26,7 @@
     const islands=2+Math.floor(Math.random()*3);for(let i=0;i<islands;i++){let x=150+Math.random()*(W-300), y=185+Math.random()*145, w=90+Math.random()*105;tctx.beginPath();tctx.ellipse(x,y,w/2,18+Math.random()*10,0,0,Math.PI*2);tctx.fill();}refreshTerrain();
     const picked=[...names].sort(()=>Math.random()-.5);worms = spawnXs.map((x,i)=>mk(i<2?0:1,x,groundY(x),picked[i]));
     goats=[]; for(let i=0;i<4+Math.floor(Math.random()*3);i++){let x=80+Math.random()*(W-160);goats.push({x,y:groundY(x)-2,vx:(Math.random()>.5?1:-1)*(18+Math.random()*18),vy:0,face:Math.random()>.5?1:-1,hp:45,alive:true,think:1+Math.random()*3,bleat:2+Math.random()*5,bubble:0,ground:false});}
-    birds=Array.from({length:3},(_,i)=>({x:Math.random()*W,y:105+Math.random()*190,vx:30+Math.random()*28,phase:i*2,alive:true}));mines=[];mineDrop=null;active = 0; projectile = null; gameOver = false; graves = []; explosions = []; particles = [];airBombs=[];airstrikeDone=false; charging = false; weapon = 'bazooka'; weaponMenu = false; airstrike = null; turnStart = performance.now();
+    birds=Array.from({length:3},(_,i)=>({x:Math.random()*W,y:105+Math.random()*190,vx:30+Math.random()*28,phase:i*2,alive:true}));mines=[];mineDrop=null;active = 0; projectile = null; gameOver = false; graves = []; explosions = []; particles = [];airBombs=[];airstrikeDone=false; charging = false; weapon = 'bazooka'; weaponMenu = false; airstrike = null; botThink=.8; turnStart = performance.now();
   }
   function mk(team,x,y,name) { return { team,x,y,name,weapon:'bazooka',vx:0,vy:0,hp:100,alive:true,face: team? -1:1,ground:false,flash:0 }; }
   function groundY(x) { for(let y=100;y<WATER;y++) if(solid(x,y)) return y-R-1; return WATER-R-1; }
@@ -42,7 +42,7 @@
   function sendCommand(type,payload={}) { if(!lobbyRef||!selectedPlayer)return;lobbyRef.child('commands').push({type,payload,player:selectedPlayer,at:firebase.database.ServerValue.TIMESTAMP}); }
   function applyCommand(c) { if(!c||!isHost)return;const w=activeWorm();if(!w||w.team!==Number(c.player)-1)return;if(c.type==='aim'){mouse=c.payload;}else if(c.type==='weapon'){w.weapon=c.payload.weapon;weapon=w.weapon;}else if(c.type==='fire'){mouse=c.payload.mouse;fire(c.payload.power??1);} }
   function bindNetwork() { if(networkBound)return;networkBound=true;if(isHost){lobbyRef.child('commands').limitToLast(1).on('child_added',snap=>{const c=snap.val();if(c&&c.player!=='1')applyCommand(c);snap.ref.remove();});lobbyRef.child('input/2').on('value',snap=>{const v=snap.val()||{};['KeyA','KeyD','ArrowLeft','ArrowRight','KeyW','ArrowUp'].forEach(k=>keys[k]=!!v[k]);});publishTerrain();publishState(true);}else{lobbyRef.child('state').on('value',snap=>applyRemoteState(snap.val()));lobbyRef.child('terrain').on('value',snap=>{const src=snap.val();if(!src)return;const img=new Image();img.onload=()=>{tctx.clearRect(0,0,W,H);tctx.drawImage(img,0,0);refreshTerrain();};img.src=src;});} }
-  function nextTurn() { if(gameOver) return; let aliveTeams = teams.map((_,t)=>worms.some(w=>w.alive&&w.team===t)); if(!aliveTeams[0]||!aliveTeams[1]) { gameOver = true; return; } do { active=(active+1)%worms.length; } while(!worms[active].alive); turnStart=performance.now(); }
+  function nextTurn() { if(gameOver) return; let aliveTeams = teams.map((_,t)=>worms.some(w=>w.alive&&w.team===t)); if(!aliveTeams[0]||!aliveTeams[1]) { gameOver = true; return; } do { active=(active+1)%worms.length; } while(!worms[active].alive); botThink=.65+Math.random()*.75; turnStart=performance.now(); }
   function fire(power = 1) { const w=activeWorm(); if(!w || projectile || gameOver || weaponMenu || airstrike || airBombs.length || airstrikeDone || goatDrop || mineDrop) return; weapon=w.weapon;if(weapon==='airstrike'){ airstrike={x:mouse.x,delay:.15,count:0}; return; } if(weapon==='goatdrop'){goatDrop={x:-90,target:mouse.x,delay:.35,count:0};return;}if(weapon==='minedrop'){mineDrop={x:-90,target:mouse.x,delay:.25,count:0};return;} if(weapon==='wall'){placeWall(mouse.x,mouse.y);setTimeout(nextTurn,300);return;} const dx=mouse.x-w.x, dy=mouse.y-(w.y-5), len=Math.hypot(dx,dy)||1, speed=230+power*430; projectile={x:w.x+dx/len*26,y:w.y-5+dy/len*26,vx:dx/len*speed,vy:dy/len*speed,age:0}; }
   function placeWall(x,y){x=Math.max(52,Math.min(W-52,x));y=Math.max(8,Math.min(WATER-8,y));tctx.fillStyle='#647178';tctx.fillRect(x-52,y-7,104,14);tctx.strokeStyle='#d5624b';tctx.lineWidth=2;for(let xx=x-47;xx<x+48;xx+=13){tctx.beginPath();tctx.moveTo(xx,y-6);tctx.lineTo(xx+8,y+6);tctx.stroke();}refreshTerrain();}
   function kill(w) { if(!w.alive) return; w.alive=false; graves.push({x:w.x,y:Math.min(w.y,WATER-28),vx:w.vx*.45,vy:Math.min(w.vy,-40),tilt:(Math.random()-.5)*.16,spin:(Math.random()-.5)*2,ground:false}); if(w===activeWorm()) setTimeout(nextTurn,350); }
@@ -55,6 +55,7 @@
     if(!gameStarted) return;
     if(!isHost) return;
     if(!gameOver && !projectile && performance.now()-turnStart>30000) nextTurn();
+    if(botMode&&!gameOver&&activeWorm()?.team===1&&!projectile&&!airstrike&&!airBombs.length&&!goatDrop&&!mineDrop){botThink-=dt;if(botThink<=0){const targets=worms.filter(w=>w.alive&&w.team===0),target=targets[Math.floor(Math.random()*targets.length)];if(target){mouse={x:Math.max(30,Math.min(W-30,target.x+(Math.random()-.5)*90)),y:Math.max(45,target.y-10+(Math.random()-.5)*55)};activeWorm().weapon='bazooka';fire(.45+Math.random()*.35);}}}
     worms.forEach((w,i)=>{ if(!w.alive)return; if(i===active&&!projectile&&!gameOver){w.face=mouse.x>=w.x?1:-1; if(keys.KeyA||keys.ArrowLeft){w.vx-=850*dt;w.face=-1;} if(keys.KeyD||keys.ArrowRight){w.vx+=850*dt;w.face=1;} if((keys.KeyW||keys.ArrowUp)&&w.ground){w.vy=-385;w.ground=false;keys.KeyW=keys.ArrowUp=false;} } w.vx*=Math.pow(.0002,dt); w.vx=Math.max(-135,Math.min(135,w.vx)); w.vy+=780*dt;
       // When meeting a crater edge, search up to a small "step" height before stopping.
       let mx=w.vx*dt, steps=Math.ceil(Math.abs(mx)/2)||1, sx=mx/steps; for(let n=0;n<steps;n++){
@@ -98,6 +99,57 @@
   canvas.addEventListener('mousedown',e=>{if(e.button!==0||!ownsTurn()||projectile||gameOver)return;if(activeWorm().weapon==='bazooka'){charging=true;chargeStart=performance.now();}else if(isHost)fire(1);else sendCommand('fire',{power:1,mouse:{x:mouse.x,y:mouse.y}});});
   window.addEventListener('mouseup',e=>{if(e.button===0&&charging){let power=Math.min(1,(performance.now()-chargeStart)/1300);charging=false;if(isHost)fire(power);else sendCommand('fire',{power,mouse:{x:mouse.x,y:mouse.y}});}});
   document.querySelector('#restart').addEventListener('click',()=>{if(isHost){reset();publishState(true);publishTerrain();}});
-  function setupLobby(){const lobby=document.querySelector('#lobby'),ready=document.querySelector('#ready'),status=document.querySelector('#lobbyStatus'),roomText=document.querySelector('#roomText'),clientId=sessionStorage.getItem('worms-client')||crypto.randomUUID();sessionStorage.setItem('worms-client',clientId);const params=new URLSearchParams(location.search);let room=params.get('room');if(!room){room=Math.random().toString(36).slice(2,8);history.replaceState(null,'',`${location.pathname}?room=${room}`);}roomText.textContent=`Комната: ${room} — отправь эту ссылку другу`;firebase.initializeApp(firebaseConfig);lobbyRef=firebase.database().ref(`worms-rooms/${room}`);document.querySelectorAll('.slot').forEach(btn=>btn.addEventListener('click',()=>{selectedPlayer=btn.dataset.player;document.querySelectorAll('.slot').forEach(b=>b.classList.toggle('selected',b===btn));ready.disabled=false;ready.textContent='Готов';}));ready.addEventListener('click',()=>{if(!selectedPlayer)return;const playerRef=lobbyRef.child(`players/${selectedPlayer}`);playerRef.transaction(current=>current&&current.clientId!==clientId?undefined:{ready:true,clientId,at:firebase.database.ServerValue.TIMESTAMP}).then(result=>{if(!result.committed){status.textContent='Этот слот уже занят';return;}playerRef.onDisconnect().remove();ready.disabled=true;ready.textContent='Готово';});});lobbyRef.child('players').on('value',snap=>{const players=snap.val()||{},readyCount=Object.values(players).filter(p=>p&&p.ready).length;document.querySelectorAll('.slot').forEach(btn=>{const occupied=!!players[btn.dataset.player];btn.disabled=occupied&&players[btn.dataset.player].clientId!==clientId;});status.textContent=readyCount<2?`Готовы: ${readyCount}/2 — ждём второго игрока`:'Оба игрока готовы — старт!';if(readyCount>=2&&selectedPlayer==='1')lobbyRef.child('match').transaction(current=>current||{started:firebase.database.ServerValue.TIMESTAMP}).then(result=>{if(result.committed&&!result.snapshot.exists())return;lobbyRef.child('commands').remove();lobbyRef.child('input').remove();});});lobbyRef.child('match').on('value',snap=>{const match=snap.val();if(match?.started&&!gameStarted&&selectedPlayer){isHost=selectedPlayer==='1';gameStarted=true;lobby.style.display='none';if(isHost)reset();bindNetwork();}});}
+  function setupLobby(){
+    const startMenu=document.querySelector('#startMenu'),lobby=document.querySelector('#lobby'),status=document.querySelector('#lobbyStatus'),clientId=sessionStorage.getItem('worms-client')||crypto.randomUUID();
+    let players={},match=null,joining=false;
+    sessionStorage.setItem('worms-client',clientId);
+    function startSolo(){
+      botMode=true;selectedPlayer='1';isHost=true;gameStarted=true;startMenu.style.display='none';reset();
+    }
+    function openMultiplayer(){
+      botMode=false;startMenu.style.display='none';lobby.style.display='grid';
+      firebase.initializeApp(firebaseConfig);
+      // One public queue: the first two browsers automatically receive a team.
+      lobbyRef=firebase.database().ref('worms-quick-match');
+      bindMultiplayer();
+      join(1);
+    }
+    function hasBothPlayers(){return players['1']&&players['2'];}
+    function matchIsCurrent(){return match?.started&&hasBothPlayers()&&match.hostClientId===players['1'].clientId&&match.guestClientId===players['2'].clientId;}
+    function beginIfReady(){
+      if(!matchIsCurrent()||gameStarted||!selectedPlayer)return;
+      isHost=selectedPlayer==='1';gameStarted=true;lobby.style.display='none';
+      if(isHost)reset();bindNetwork();
+    }
+    function createMatch(){
+      if(selectedPlayer!=='1'||!hasBothPlayers()||gameStarted)return;
+      const hostClientId=players['1'].clientId,guestClientId=players['2'].clientId;
+      lobbyRef.child('match').transaction(current=>current?.hostClientId===hostClientId&&current?.guestClientId===guestClientId?current:{started:firebase.database.ServerValue.TIMESTAMP,hostClientId,guestClientId}).then(result=>{
+        const created=result.snapshot.val();
+        if(result.committed&&created?.hostClientId===hostClientId&&created?.guestClientId===guestClientId){lobbyRef.child('commands').remove();lobbyRef.child('input').remove();}
+      });
+    }
+    function updateLobby(){
+      if(gameStarted)return;
+      if(!selectedPlayer){status.textContent='Игра уже занята. Подождите, пока освободится место.';return;}
+      if(!hasBothPlayers()){status.textContent=`Вы ${selectedPlayer==='1'?'в красной':'в синей'} команде — ждём второго игрока…`;return;}
+      status.textContent='Соперник найден — начинаем!';createMatch();beginIfReady();
+    }
+    function join(slot){
+      if(joining||selectedPlayer)return;joining=true;
+      const playerRef=lobbyRef.child(`players/${slot}`);
+      playerRef.transaction(current=>current&&current.clientId!==clientId?undefined:{clientId,joinedAt:firebase.database.ServerValue.TIMESTAMP}).then(result=>{
+        joining=false;
+        if(result.committed){selectedPlayer=String(slot);playerRef.onDisconnect().remove();updateLobby();}
+        else if(slot===1)join(2);else updateLobby();
+      });
+    }
+    document.querySelector('#solo').addEventListener('click',startSolo);
+    document.querySelector('#multiplayer').addEventListener('click',openMultiplayer);
+    function bindMultiplayer(){
+      lobbyRef.child('players').on('value',snap=>{players=snap.val()||{};updateLobby();});
+      lobbyRef.child('match').on('value',snap=>{match=snap.val();beginIfReady();});
+    }
+  }
   reset();setupLobby();requestAnimationFrame(loop);
 })();
